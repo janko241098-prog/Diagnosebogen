@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fitness-Fragebogen EF</title>
+<style>
+body { font-family: 'Arial Black', Arial, sans-serif; margin: 20px; background: linear-gradient(120deg, #a1c4fd, #c2e9fb); color: #333; }
+h1, h2 { text-align: center; color: #004080; text-shadow: 1px 1px #fff; }
+.container { max-width: 900px; margin: auto; padding: 25px; background: rgba(255,255,255,0.95); border-radius: 15px; box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
+.question { margin: 20px 0; padding: 15px; background: rgba(0,123,255,0.1); border-left: 5px solid #004080; border-radius: 8px; }
+input[type=text] { width: 100%; padding: 10px; margin-top: 8px; border-radius: 5px; border: 1px solid #004080; background: #fff; color: #000; }
+button { padding: 12px 25px; margin: 10px 5px 0 0; cursor: pointer; border: none; border-radius: 8px; background: #28a745; color: #fff; font-size: 16px; font-weight: bold; transition: 0.3s; }
+button:hover { background: #218838; }
+button.delete-btn { background: #dc3545 !important; }
+button.delete-btn:hover { background: #b02a37 !important; }
+.hidden { display: none; }
+.table-container { overflow-x: auto; margin-top: 20px; }
+table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+th, td { border: 1px solid #ccc; padding: 10px; text-align: center; color: #000; background: #fff; }
+th { background: #004080; color: #fff; }
+.checkbox-group { display: flex; justify-content: space-between; margin-top: 8px; }
+.checkbox-group label { flex: 1; text-align: center; background: #007bff; padding: 10px; margin: 2px; border-radius: 5px; cursor: pointer; color: #fff; }
+.checkbox-group input { display: none; }
+.checkbox-group input:checked + label { background: #28a745; font-weight: bold; }
+.footer { text-align: center; margin-top: 40px; color: #004080; font-weight: bold; font-size: 16px; }
+.chart-container { margin-top: 20px; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<div class="container">
+<h1>🏋️ Fitness-Fragebogen EF 🏋️</h1>
+<div id="login-section">
+    <h2>Lehrkraft Login</h2>
+    <p>Passwort für Lehrkraft: <strong>FitnessEF</strong></p>
+    <input type="password" id="teacher-password" placeholder="Passwort eingeben">
+    <button onclick="teacherLogin()">Login</button>
+    <hr>
+    <h2>Schülerzugriff</h2>
+    <button onclick="showStudentForm()">Fragebogen ausfüllen</button>
+</div>
+<div id="student-section" class="hidden">
+    <h2>Schülerfragebogen</h2>
+    <div id="questions-container"></div>
+    <div class="question">
+        <label>Schülername:</label>
+        <input type='text' id='student-name' placeholder='Name eingeben'>
+    </div>
+    <button onclick="submitStudentForm()">Abschicken</button>
+    <button onclick="backToLogin()">Zurück</button>
+</div>
+<div id="teacher-section" class="hidden">
+    <h2>Lehrerbereich</h2>
+    <div id="charts-container"></div>
+    <div class="table-container">
+        <table id="results-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th><th>Q5</th><th>Q6</th><th>Q7</th><th>Q8</th><th>Q9</th><th>Q10</th><th>Q11</th><th>Q12</th><th>Löschen</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+    <button onclick="logoutTeacher()">Logout</button>
+</div>
+<div class="footer">A.Peric</div>
+<script>
+const TEACHER_PASSWORD = "FitnessEF";
+const questions = [
+    "Ich habe Erfahrungen mit Fitnesstraining.",
+    "Ich kenne die wichtigsten Muskelgruppen.",
+    "Ich kann Übungen den verschiedenen Muskelgruppen zuordnen.",
+    "Ich weiß, was ein Kraftausdauerzyklus ist.",
+    "Ich kenne verschiedene Trainingsmethoden im Fitnessbereich.",
+    "Ich kenne mich mit den Begriffen Intensität, Umfang, Dichte und Dauer aus.",
+    "Ich kann meine persönliche Trainingsbelastung einschätzen.",
+    "Ich weiß, wie man sich richtig aufwärmt und kenne Kriterien.",
+    "Ich weiß, was muskuläre Disbalancen sind.",
+    "Ich weiß, wie ich einen eigenen Trainingsplan erstellen kann.",
+    "Ich kenne Übungen zur Kräftigung verschiedener Muskelgruppen.",
+    "Ich kenne verschiedene Yoga- und Pilatesübungen."
+];
+const studentSection = document.getElementById('questions-container');
+questions.forEach((q,i)=>{
+    const div = document.createElement('div');
+    div.className = 'question';
+    div.innerHTML = `<label>${i+1}. ${q}</label>` +
+    `<div class='checkbox-group'>` +
+    [3,2,1,0].map(val=>`<input type='radio' name='q${i+1}' id='q${i+1}_${val}' value='${val}'><label for='q${i+1}_${val}'>${val==3?'Trifft zu':val==2?'Trifft mittel zu':val==1?'Trifft weniger zu':'Trifft nicht zu'}</label>`).join('') +
+    `</div>`;
+    studentSection.appendChild(div);
+});
+
+function showStudentForm() { document.getElementById("login-section").classList.add("hidden"); document.getElementById("student-section").classList.remove("hidden"); }
+function backToLogin() { document.getElementById("student-section").classList.add("hidden"); document.getElementById("login-section").classList.remove("hidden"); }
+function teacherLogin() { const pwd = document.getElementById("teacher-password").value; if(pwd === TEACHER_PASSWORD) { document.getElementById("login-section").classList.add("hidden"); document.getElementById("teacher-section").classList.remove("hidden"); loadResults(); loadCharts(); } else { alert("Falsches Passwort!"); } }
+
+function submitStudentForm() {
+    const name = document.getElementById("student-name").value.trim();
+    if(!name) { alert("Bitte Name eingeben"); return; }
+    const answers = [];
+    for(let i=1;i<=12;i++){
+        const radios = document.getElementsByName('q'+i);
+        let selected=false;
+        radios.forEach(r=>{if(r.checked){answers.push(r.value);selected=true;}});
+        if(!selected){ alert("Bitte alle Fragen beantworten"); return; }
+    }
+    const allResults = JSON.parse(localStorage.getItem("fitnessResults") || "[]");
+    allResults.push({name, answers});
+    localStorage.setItem("fitnessResults", JSON.stringify(allResults));
+    alert("Antworten gespeichert!");
+    backToLogin();
+}
+
+function loadResults() {
+    const allResults = JSON.parse(localStorage.getItem("fitnessResults") || "[]");
+    const tbody = document.querySelector("#results-table tbody");
+    tbody.innerHTML = "";
+    allResults.forEach((res, index)=>{
+        const row = document.createElement("tr");
+        row.innerHTML = `<td>${res.name}</td>` + res.answers.map(a=>`<td>${a}</td>`).join('') + `<td><button class="delete-btn" onclick="deleteResult(${index})">Löschen</button></td>`;
+        tbody.appendChild(row);
+    });
+}
+
+function loadCharts() {
+    const allResults = JSON.parse(localStorage.getItem("fitnessResults") || "[]");
+    const container = document.getElementById('charts-container');
+    container.innerHTML = '';
+    questions.forEach((q,i)=>{
+        const counts = [0,0,0,0];
+        allResults.forEach(res=>{ counts[parseInt(res.answers[i])]++; });
+        const canvas = document.createElement('canvas');
+        canvas.id = 'chart'+i;
+        container.appendChild(document.createElement('h3')).innerText = `Frage ${i+1}: ${q}`;
+        container.appendChild(canvas);
+        new Chart(canvas.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: ['Trifft nicht zu','Trifft weniger zu','Trifft mittel zu','Trifft zu'],
+                datasets: [{label:'Anzahl Schüler', data: counts, backgroundColor:['#dc3545','#ffc107','#17a2b8','#28a745'] }]
+            },
+            options: { responsive:true, scales: { y: { beginAtZero:true, precision:0 } } }
+        });
+    });
+}
+
+function deleteResult(index) {
+    if(confirm("Möchten Sie diesen Eintrag wirklich löschen?")) {
+        const allResults = JSON.parse(localStorage.getItem("fitnessResults") || "[]");
+        allResults.splice(index, 1);
+        localStorage.setItem("fitnessResults", JSON.stringify(allResults));
+        loadResults();
+        loadCharts();
+    }
+}
+
+function logoutTeacher() { document.getElementById("teacher-section").classList.add("hidden"); document.getElementById("login-section").classList.remove("hidden"); document.getElementById("teacher-password").value = ""; }
+</script>
+</body>
+</html>
